@@ -3,9 +3,9 @@
 'use strict';
 
 const FS = require('fs');
-const geojsonStart = '{ "type" : "FeatureCollection", "features" : [';
-const geojsonEnd = ']}';
-const JSONStream = require("JSONStream").stringify(geojsonStart,",",geojsonEnd);
+const geojsonStart = '{ "type" : "FeatureCollection", "features" : [\n';
+const geojsonEnd = '\n]}';
+const JSONStream = require("JSONStream").stringify(geojsonStart,",\n",geojsonEnd);
 JSONStream.pipe(FS.createWriteStream("output.json"));
 
 const argv = require('yargs')
@@ -92,6 +92,7 @@ if (includeMinzoom && typeof includeMinzoom === "string" && includeMinzoom.split
 
 let labelFeatures = [];
 let featureCount = 0;
+let k = 0;
 featureStream.on('data', (inputFeature) => {
     featureCount++;
     process.stderr.write('...' + featureCount + "\r");
@@ -149,7 +150,7 @@ featureStream.on('data', (inputFeature) => {
                     if (includeMinzoom && typeof includeMinzoom === "string") {
                         minZoomMin = Number(includeMinzoom.split('-')[0]);
                         minZoomMax = Number(includeMinzoom.split('-')[1]);
-                        if (verbose) console.error(`Using --include-minzoom value of ${minZoomMin}-${minZoomMax}`);
+                        if (verbose && k==0) console.error(`Using --include-minzoom value of ${minZoomMin}-${minZoomMax}`);
                     }
 
 
@@ -181,6 +182,7 @@ featureStream.on('data', (inputFeature) => {
             }
         });
     }
+    k++;
 });
 
 featureStream.on('end', () => {
@@ -188,25 +190,30 @@ featureStream.on('end', () => {
   var outputGeoJSON = turf.featureCollection(labelFeatures);
 
   // write GeoJSON to stdout
-  if (verbose) console.error('Writting GeoJSON...');
+  if (verbose) console.error('Writing GeoJSON\n');
   //DEBUGGING console.log(Object.keys(outputGeoJSON));
   //DEBUGGING console.log(outputGeoJSON.properties);
 
   //process.stdout.write(JSON.stringify(outputGeoJSON));
   var labelFeature;
   var features = outputGeoJSON.features;
-  for(var k in features){
+  for(k in features){
     labelFeature = features[k];
-    if (verbose && k==0) console.log("DEBUG EXAMPLE: "+JSON.stringify(labelFeature));
+    if (verbose)
+        if(k==0) {
+            console.log("DEBUG EXAMPLE: "+JSON.stringify(labelFeature));
+        } else if (k % 10 == 0) {
+            console.log(k);
+        } else{
+            console.log(".");
+        }
+    }
     JSONStream.write(labelFeature);
     delete(features[k]);
   }
   setTimeout(() =>{
     JSONStream.end();
-  },5000);
-
-  
-
+  },180000);
 });
 
 
