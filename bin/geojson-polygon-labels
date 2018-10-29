@@ -2,7 +2,12 @@
 
 'use strict';
 
-const fs = require('fs');
+const FS = require('fs');
+const geojsonStart = '{ "type" : "FeatureCollection", "features" : [';
+const geojsonEnd = ']}';
+const JSONStream = require("JSONStream").stringifyObject(geojsonStart,",",geojsonEnd);
+JSONStream.pipe(FS.createWriteStream("output.json"));
+
 const argv = require('yargs')
     .usage("$0 [--precision=0.001] [--include-area] [--label=polylabel] [--style=explode] [--include-minzoom=0-16] [--verbose] <layer.geojson> > <labels.geojson>")
     .option('verbose', {
@@ -179,13 +184,26 @@ featureStream.on('data', (inputFeature) => {
 });
 
 featureStream.on('end', () => {
-    // collect all features into a GeoJSON object
-    var outputGeoJSON = turf.featureCollection(labelFeatures);
+  // collect all features into a GeoJSON object
+  var outputGeoJSON = turf.featureCollection(labelFeatures);
 
-    // write GeoJSON to stdout
-    if (verbose) console.error('Writting GeoJSON...');
-    process.stdout.write(JSON.stringify(outputGeoJSON));
+  // write GeoJSON to stdout
+  if (verbose) console.error('Writting GeoJSON...');
+  //DEBUGGING console.log(Object.keys(outputGeoJSON));
+  //DEBUGGING console.log(outputGeoJSON.properties);
+
+  //process.stdout.write(JSON.stringify(outputGeoJSON));
+  var features = outputGeoJSON.features;
+  for(var k in features){
+    var labelFeature = features[k];
+    console.log(labelFeature);
+    JSONStream.write([null,labelFeature]);
+  }
+  setTimeout(() =>{
+    JSONStream.end();
+  },5000);
 });
+
 
 function areaToZoom(area, min, max) {
     return Math.max(min, Math.min(max, Math.round(13.9670060423554 - (0.428698399307115 * Math.log(area, 2)))));
