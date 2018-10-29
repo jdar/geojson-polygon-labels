@@ -5,7 +5,7 @@
 const FS = require('fs');
 const geojsonStart = '{ "type" : "FeatureCollection", "features" : [';
 const geojsonEnd = ']}';
-const JSONStream = require("JSONStream").stringifyObject(geojsonStart,",",geojsonEnd);
+const JSONStream = require("JSONStream").stringify(geojsonStart,",",geojsonEnd);
 JSONStream.pipe(FS.createWriteStream("output.json"));
 
 const argv = require('yargs')
@@ -193,15 +193,20 @@ featureStream.on('end', () => {
   //DEBUGGING console.log(outputGeoJSON.properties);
 
   //process.stdout.write(JSON.stringify(outputGeoJSON));
+  var labelFeature;
   var features = outputGeoJSON.features;
   for(var k in features){
-    var labelFeature = features[k];
-    console.log(labelFeature);
-    JSONStream.write([null,labelFeature]);
+    labelFeature = features[k];
+    if (verbose && k==0) console.log("DEBUG EXAMPLE: "+JSON.stringify(labelFeature));
+    JSONStream.write(labelFeature);
+    delete(features[k]);
   }
   setTimeout(() =>{
     JSONStream.end();
   },5000);
+
+  
+
 });
 
 
